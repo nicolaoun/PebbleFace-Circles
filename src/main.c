@@ -187,6 +187,11 @@ static void draw_text_layers(Layer *canvas, GContext *ctx) {
 
 //canvas update procedure
 void my_update_proc(Layer *layer, GContext *ctx) {  
+
+  static char hour[]="00";
+  static char min[]="00";
+  static char sec[]="00";
+
   // draw hour circle
   draw_hour_layers(current_time.hours, layer, ctx);
   
@@ -195,7 +200,16 @@ void my_update_proc(Layer *layer, GContext *ctx) {
   
   // draw sec circle
   draw_sec_layers(current_time.seconds, layer, ctx);
-  
+
+  //Write the current time on the time layers
+  snprintf(hour, sizeof(hour), "%d", current_time.hours);
+  text_layer_set_text(hour_text_layer, hour);  
+
+  snprintf(min, sizeof(min), "%d", current_time.minutes);
+  text_layer_set_text(min_text_layer, min);
+
+  snprintf(sec, sizeof(sec), "%d", current_time.seconds);
+  text_layer_set_text(sec_text_layer, sec);
 }
 
 void deinit_canvas_layers(){
@@ -223,22 +237,22 @@ void window_load(){
   layer_add_child(win_layer, text_layer_get_layer(text_layer));
 
   //add hour text layer
-  hour_text_layer = text_layer_create(GRect(canvas_center.x-10, canvas_center.y-(HOURS_RADIUS+HOURS_THICK+15), 20, 30));
-  text_layer_set_text_alignment(hour_text_layer, GTextAlignmentCenter);
+  hour_text_layer = text_layer_create(GRect(canvas_center.x-10, canvas_center.y-(HOURS_RADIUS+HOURS_THICK), 20,20));
+   text_layer_set_text(hour_text_layer, "H");
+ text_layer_set_text_alignment(hour_text_layer, GTextAlignmentCenter);
   layer_add_child(win_layer, text_layer_get_layer(hour_text_layer));
 
   //add min text layer
-  min_text_layer = text_layer_create(GRect(canvas_center.x-10, canvas_center.y-(MIN_RADIUS+MIN_THICK+15), 20, 30));
+  min_text_layer = text_layer_create(GRect(canvas_center.x-10, canvas_center.y-(MIN_RADIUS+MIN_THICK+5), 20, 20));
+   text_layer_set_text(min_text_layer, "M");
   text_layer_set_text_alignment(min_text_layer, GTextAlignmentCenter);
   layer_add_child(win_layer, text_layer_get_layer(min_text_layer));
 
-
-  //add sec text layer
-  sec_text_layer = text_layer_create(GRect(canvas_center.x-10, canvas_center.y-(SEC_RADIUS+SEC_THICK+15), 20, 30));
+    //add sec text layer
+  sec_text_layer = text_layer_create(GRect(canvas_center.x-10, canvas_center.y-(SEC_RADIUS+SEC_THICK+5), 20, 15));
+  text_layer_set_text(sec_text_layer, "S");
   text_layer_set_text_alignment(sec_text_layer, GTextAlignmentCenter);
-  layer_add_child(win_layer, text_layer_get_layer(sec_text_layer));
-
-
+  layer_add_child(canvas_layer, text_layer_get_layer(sec_text_layer));
 
 }
 
