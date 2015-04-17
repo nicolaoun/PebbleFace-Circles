@@ -1,0 +1,23 @@
+{
+    "appKeys": {},
+    "capabilities": [
+        ""
+    ],
+    "companyName": "nicolaoun@gmail.com",
+    "longName": "graphics_test",
+    "projectType": "native",
+    "resources": {
+        "media": []
+    },
+    "sdkVersion": "3",
+    "shortName": "graphics_test",
+    "targetPlatforms": [
+        "basalt"
+    ],
+    "uuid": "667effcc-56b6-4dd7-b076-3fe1e4552f4e",
+    "versionCode": 1,
+    "versionLabel": "1.0",
+    "watchapp": {
+        "watchface": false
+    }
+}
