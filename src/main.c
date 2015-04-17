@@ -223,7 +223,7 @@ void window_load(){
   layer_add_child(win_layer, text_layer_get_layer(text_layer));
 
   //add hour text layer
-  hour_text_layer = text_layer_create(GRect(canvas_center.x-10, canvas_center.y-(HOUR_RADIUS+HOUR_THICK+15), 20, 30));
+  hour_text_layer = text_layer_create(GRect(canvas_center.x-10, canvas_center.y-(HOURS_RADIUS+HOURS_THICK+15), 20, 30));
   text_layer_set_text_alignment(hour_text_layer, GTextAlignmentCenter);
   layer_add_child(win_layer, text_layer_get_layer(hour_text_layer));
 
