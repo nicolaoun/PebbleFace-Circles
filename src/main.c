@@ -1,8 +1,8 @@
 #include <pebble.h>
   
-#define HOURS_RADIUS 50
-#define MIN_RADIUS 40
-#define SEC_RADIUS 30
+#define HOURS_RADIUS 60
+#define MIN_RADIUS 36
+#define SEC_RADIUS 20
 #define HOURS_THICK 6
 #define MIN_THICK 4
 #define SEC_THICK 2
@@ -15,6 +15,7 @@
 
 Window *my_window;
 TextLayer *text_layer;
+TextLayer *hour_text_layer, *min_text_layer, *sec_text_layer;
 Layer *canvas_layer;
 Layer *right_hours_layer, *left_hours_layer;
 Layer *right_min, *left_min;
@@ -63,6 +64,7 @@ void draw_hour_layers(int hours, Layer *canvas, GContext *ctx){
   float inc_step;
   float top_y = canvas_center.y - HOURS_RADIUS - HOURS_THICK;
   float max_height = 2 * ( HOURS_RADIUS + HOURS_THICK );
+  float half_circle = HOURS_RADIUS + HOURS_THICK;
   GRect c_bounds = layer_get_bounds(canvas);
   
   //draw the circle
@@ -93,19 +95,19 @@ void draw_hour_layers(int hours, Layer *canvas, GContext *ctx){
     y_origin = y_origin + inc_step * norm_hours;
   }
   
-  graphics_fill_rect(ctx, GRect(c_bounds.origin.x+c_bounds.size.w/2, y_origin , c_bounds.size.w/2, r_height),0,0); 
+  graphics_fill_rect(ctx, GRect(canvas_center.x, y_origin , half_circle, r_height),0,0); 
   
   //draw left layer
   float l_height = (norm_hours > 6 && norm_hours < 12)? max_height - (inc_step*(norm_hours-6)) : max_height;
   
-  graphics_fill_rect(ctx, GRect(c_bounds.origin.x, top_y , c_bounds.size.w/2, l_height),0,0);
+  graphics_fill_rect(ctx, GRect(canvas_center.x-half_circle, top_y , half_circle, l_height),0,0);
 }
 
 void draw_min_layers(int min, Layer *canvas, GContext *ctx){
   float inc_step;
-  float top_y = canvas_center.y - MIN_RADIUS - MIN_THICK;
-  float max_height = 2 * ( MIN_RADIUS + MIN_THICK );
-  float half_circle = MIN_RADIUS;
+  float top_y = canvas_center.y - MIN_RADIUS - MIN_THICK/2;
+  float max_height = 2 * ( MIN_RADIUS + MIN_THICK/2 );
+  float half_circle = MIN_RADIUS + MIN_THICK;
   
   //draw the circle
   //set parameters
@@ -142,7 +144,7 @@ void draw_min_layers(int min, Layer *canvas, GContext *ctx){
 
 void draw_sec_layers(int sec, Layer *canvas, GContext *ctx){
   float inc_step;
-  float top_y = canvas_center.y - SEC_RADIUS - SEC_THICK;
+  float top_y = canvas_center.y - SEC_RADIUS - SEC_THICK/2;
   float max_height = 2 * ( SEC_RADIUS + SEC_THICK );
   float half_circle = SEC_RADIUS + SEC_THICK;
   
@@ -177,6 +179,10 @@ void draw_sec_layers(int sec, Layer *canvas, GContext *ctx){
   float l_height = (sec > 30 && sec <= 60)? max_height - (inc_step*(sec-30)) : max_height;
   
   graphics_fill_rect(ctx, GRect(canvas_center.x-half_circle, top_y , half_circle, l_height),0,0);
+}
+
+static void draw_text_layers(Layer *canvas, GContext *ctx) {
+	
 }
 
 //canvas update procedure
@@ -216,6 +222,24 @@ void window_load(){
   text_layer_set_text_alignment(text_layer, GTextAlignmentCenter);
   layer_add_child(win_layer, text_layer_get_layer(text_layer));
 
+  //add hour text layer
+  hour_text_layer = text_layer_create(GRect(canvas_center.x-10, canvas_center.y-(HOUR_RADIUS+HOUR_THICK+15), 20, 30));
+  text_layer_set_text_alignment(hour_text_layer, GTextAlignmentCenter);
+  layer_add_child(win_layer, text_layer_get_layer(hour_text_layer));
+
+  //add min text layer
+  min_text_layer = text_layer_create(GRect(canvas_center.x-10, canvas_center.y-(MIN_RADIUS+MIN_THICK+15), 20, 30));
+  text_layer_set_text_alignment(min_text_layer, GTextAlignmentCenter);
+  layer_add_child(win_layer, text_layer_get_layer(min_text_layer));
+
+
+  //add sec text layer
+  sec_text_layer = text_layer_create(GRect(canvas_center.x-10, canvas_center.y-(SEC_RADIUS+SEC_THICK+15), 20, 30));
+  text_layer_set_text_alignment(sec_text_layer, GTextAlignmentCenter);
+  layer_add_child(win_layer, text_layer_get_layer(sec_text_layer));
+
+
+
 }
 
 void window_unload(){
@@ -241,7 +265,7 @@ void handle_init(void) {
                                
   window_stack_push(my_window, true);
   
-  //tick_timer_service_subscribe(SECOND_UNIT, tick_handler);
+  tick_timer_service_subscribe(SECOND_UNIT, tick_handler);
 }
 
 void handle_deinit(void) {
