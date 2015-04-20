@@ -1,13 +1,13 @@
 #include <pebble.h>
   
-#define HOURS_RADIUS 60
-#define MIN_RADIUS 36
-#define SEC_RADIUS 20
+#define HOURS_RADIUS 25 //56
+#define MIN_RADIUS 39 //34
+#define SEC_RADIUS 62 //20
 #define HOURS_THICK 6
 #define MIN_THICK 4
 #define SEC_THICK 2
 
-  typedef struct {
+typedef struct {
   int hours;
   int minutes;
   int seconds;
@@ -15,6 +15,7 @@
 
 Window *my_window;
 TextLayer *text_layer;
+InverterLayer *inv_layer;
 TextLayer *hour_text_layer, *min_text_layer, *sec_text_layer;
 Layer *canvas_layer;
 Layer *right_hours_layer, *left_hours_layer;
@@ -22,31 +23,27 @@ Layer *right_min, *left_min;
 Time current_time;
 GPoint w_center, canvas_center;
 
-static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
-  text_layer_set_text(text_layer, "Select");
-}
-
-static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
-  text_layer_set_text(text_layer, "Up");
-  GRect layer_bounds = layer_get_bounds(right_hours_layer);
-  
-  layer_set_bounds(right_hours_layer, GRect(layer_bounds.origin.x, layer_bounds.origin.y, layer_bounds.size.w, layer_bounds.size.h/2 )); 
-}
-
-static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
-  text_layer_set_text(text_layer, "Down");
-}
-
-void click_config_provider(void *context) {
-  text_layer_set_text(text_layer, "Setting the text");
-  
-  window_single_click_subscribe(BUTTON_ID_SELECT, select_click_handler);
-  window_single_click_subscribe(BUTTON_ID_UP, up_click_handler);
-  window_single_click_subscribe(BUTTON_ID_DOWN, down_click_handler);
-}
-
 /************************************ UI **************************************/
+static void battery_handler(BatteryChargeState charge_state){
+  static char battery_text[25];
 
+  if (charge_state.is_charging) {
+    snprintf(battery_text, sizeof(battery_text), "%d%% charging", charge_state.charge_percent);
+  } else {
+    snprintf(battery_text, sizeof(battery_text), "%d%%", charge_state.charge_percent);
+  }
+  
+  GColor color;
+  if ( charge_state.charge_percent > 50 ) color = GColorDarkGreen;
+  else
+    if ( charge_state.charge_percent >= 20 ) color = GColorOrange;
+    else color = GColorRed;
+  
+  text_layer_set_text_color(text_layer, color);
+  text_layer_set_text(text_layer, battery_text);
+}
+
+//second tick handler
 static void tick_handler(struct tm *tick_time, TimeUnits changed) {
   // Store time
   current_time.hours = tick_time->tm_hour;
@@ -65,7 +62,6 @@ void draw_hour_layers(int hours, Layer *canvas, GContext *ctx){
   float top_y = canvas_center.y - HOURS_RADIUS - HOURS_THICK;
   float max_height = 2 * ( HOURS_RADIUS + HOURS_THICK );
   float half_circle = HOURS_RADIUS + HOURS_THICK;
-  GRect c_bounds = layer_get_bounds(canvas);
   
   //draw the circle
   //set parameters
@@ -83,7 +79,7 @@ void draw_hour_layers(int hours, Layer *canvas, GContext *ctx){
   graphics_context_set_fill_color(ctx, GColorWhite);
   
   // normalize hours between 0-12
-  norm_hours = (hours >= 12)? hours - 12 : hours;
+  norm_hours = (hours > 12)? hours - 12 : hours;
   
   //calculate the size of the circle piece 
   inc_step = max_height / 6;
@@ -105,7 +101,7 @@ void draw_hour_layers(int hours, Layer *canvas, GContext *ctx){
 
 void draw_min_layers(int min, Layer *canvas, GContext *ctx){
   float inc_step;
-  float top_y = canvas_center.y - MIN_RADIUS - MIN_THICK/2;
+  float top_y = canvas_center.y - MIN_RADIUS ;
   float max_height = 2 * ( MIN_RADIUS + MIN_THICK/2 );
   float half_circle = MIN_RADIUS + MIN_THICK;
   
@@ -130,8 +126,8 @@ void draw_min_layers(int min, Layer *canvas, GContext *ctx){
   //draw right square
   float r_height = 0, y_origin = top_y; 
   if (min < 30){ 
-    r_height = max_height - inc_step * min + 1;
     y_origin = y_origin + inc_step * min;
+    r_height = max_height - inc_step * min;
   }
   
   graphics_fill_rect(ctx, GRect(canvas_center.x, y_origin , half_circle, r_height),0,0); 
@@ -181,9 +177,6 @@ void draw_sec_layers(int sec, Layer *canvas, GContext *ctx){
   graphics_fill_rect(ctx, GRect(canvas_center.x-half_circle, top_y , half_circle, l_height),0,0);
 }
 
-static void draw_text_layers(Layer *canvas, GContext *ctx) {
-	
-}
 
 //canvas update procedure
 void my_update_proc(Layer *layer, GContext *ctx) {  
@@ -192,23 +185,38 @@ void my_update_proc(Layer *layer, GContext *ctx) {
   static char min[]="00";
   static char sec[]="00";
 
-  // draw hour circle
-  draw_hour_layers(current_time.hours, layer, ctx);
+  // draw sec circle
+  draw_sec_layers(current_time.seconds, layer, ctx);
   
   // draw min circle
   draw_min_layers(current_time.minutes, layer, ctx);
   
-  // draw sec circle
-  draw_sec_layers(current_time.seconds, layer, ctx);
+  // draw hour circle
+  draw_hour_layers(current_time.hours, layer, ctx);
+  
+  //draw indication lines
+  graphics_context_set_stroke_color(ctx, GColorBlack);
+  graphics_context_set_stroke_width(ctx, 1);
+  // 15 min
+  graphics_draw_line(ctx, GPoint(canvas_center.x + 10, canvas_center.y), GPoint(canvas_center.x+HOURS_RADIUS+HOURS_THICK, canvas_center.y));
+  // 30 min
+  graphics_draw_line(ctx, GPoint(canvas_center.x, canvas_center.y+10), GPoint(canvas_center.x, canvas_center.y+HOURS_RADIUS+HOURS_THICK));
+  // 45 min
+  graphics_draw_line(ctx, GPoint(canvas_center.x - 10, canvas_center.y), GPoint(canvas_center.x-(HOURS_RADIUS+HOURS_THICK), canvas_center.y));
+  // 60 min
+  graphics_draw_line(ctx, GPoint(canvas_center.x, canvas_center.y-10), GPoint(canvas_center.x, canvas_center.y-(HOURS_RADIUS+HOURS_THICK)));
 
   //Write the current time on the time layers
-  snprintf(hour, sizeof(hour), "%d", current_time.hours);
+  (current_time.hours < 10) ? snprintf(hour, sizeof(hour), "0%d", current_time.hours) : snprintf(hour, sizeof(hour), "%d", current_time.hours);
+  text_layer_set_text_color(hour_text_layer, GColorRed);
   text_layer_set_text(hour_text_layer, hour);  
 
-  snprintf(min, sizeof(min), "%d", current_time.minutes);
+  (current_time.minutes < 10) ? snprintf(min, sizeof(min), "0%d", current_time.minutes) : snprintf(min, sizeof(min), "%d", current_time.minutes);
+  text_layer_set_text_color(min_text_layer, GColorBlue);
   text_layer_set_text(min_text_layer, min);
 
-  snprintf(sec, sizeof(sec), "%d", current_time.seconds);
+  (current_time.seconds < 10) ? snprintf(sec, sizeof(sec), "0%d", current_time.seconds) : snprintf(sec, sizeof(sec), "%d", current_time.seconds);;
+  text_layer_set_text_color(sec_text_layer, GColorPurple);
   text_layer_set_text(sec_text_layer, sec);
 }
 
@@ -231,28 +239,38 @@ void window_load(){
   canvas_center = GPoint( win_bounds.size.w/2, (10+win_bounds.size.h)/2);
   
   //add text layer
-  text_layer = text_layer_create(GRect((win_bounds.size.w-144)/2, 0, 144, 20));
-  text_layer_set_text(text_layer, "Press a button");
-  text_layer_set_text_alignment(text_layer, GTextAlignmentCenter);
-  layer_add_child(win_layer, text_layer_get_layer(text_layer));
+  text_layer = text_layer_create(GRect(0, 0, win_bounds.size.w, 20));
+  text_layer_set_text_alignment(text_layer, GTextAlignmentRight);
+  layer_add_child(win_layer, (Layer *) text_layer);
+  text_layer_set_font(hour_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD));
+  battery_handler(battery_state_service_peek());
+  
+  //inv_layer = inverter_layer_create(GRect(0, 0, win_bounds.size.w, 20));
+  //layer_add_child(win_layer, (Layer *) inv_layer);
+  
 
   //add hour text layer
-  hour_text_layer = text_layer_create(GRect(canvas_center.x-10, canvas_center.y-(HOURS_RADIUS+HOURS_THICK), 20,20));
-   text_layer_set_text(hour_text_layer, "H");
- text_layer_set_text_alignment(hour_text_layer, GTextAlignmentCenter);
+  //hour_text_layer = text_layer_create(GRect(canvas_center.x-10, canvas_center.y-(HOURS_RADIUS+HOURS_THICK+8), 20,25));
+  hour_text_layer = text_layer_create(GRect(canvas_center.x-10, canvas_center.y-12, 20,25));
+  text_layer_set_text(hour_text_layer, "H");
+  text_layer_set_text_alignment(hour_text_layer, GTextAlignmentCenter);
+  text_layer_set_font(hour_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
   layer_add_child(win_layer, text_layer_get_layer(hour_text_layer));
 
   //add min text layer
   min_text_layer = text_layer_create(GRect(canvas_center.x-10, canvas_center.y-(MIN_RADIUS+MIN_THICK+5), 20, 20));
-   text_layer_set_text(min_text_layer, "M");
+  text_layer_set_text(min_text_layer, "M");
   text_layer_set_text_alignment(min_text_layer, GTextAlignmentCenter);
+  text_layer_set_font(min_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
   layer_add_child(win_layer, text_layer_get_layer(min_text_layer));
 
     //add sec text layer
   sec_text_layer = text_layer_create(GRect(canvas_center.x-10, canvas_center.y-(SEC_RADIUS+SEC_THICK+5), 20, 15));
   text_layer_set_text(sec_text_layer, "S");
   text_layer_set_text_alignment(sec_text_layer, GTextAlignmentCenter);
+  text_layer_set_font(sec_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_14));
   layer_add_child(canvas_layer, text_layer_get_layer(sec_text_layer));
+  
 
 }
 
@@ -271,7 +289,6 @@ void handle_init(void) {
   
   my_window = window_create();
 
-  window_set_click_config_provider(my_window, (ClickConfigProvider) click_config_provider);
   window_set_window_handlers(my_window, (WindowHandlers){
     .load = window_load,
     .unload = window_unload,
@@ -280,10 +297,12 @@ void handle_init(void) {
   window_stack_push(my_window, true);
   
   tick_timer_service_subscribe(SECOND_UNIT, tick_handler);
+  battery_state_service_subscribe(battery_handler);
 }
 
 void handle_deinit(void) {
   window_destroy(my_window);
+  tick_timer_service_unsubscribe();
 }
 
 int main(void) {
