@@ -1,11 +1,13 @@
 #include <pebble.h>
   
-#define HOURS_RADIUS 25 //56
-#define MIN_RADIUS 39 //34
-#define SEC_RADIUS 62 //20
-#define HOURS_THICK 6
+#define HOURS_RADIUS 23 //56
+#define MIN_RADIUS 41 //34
+#define SEC_RADIUS 63 //20
+#define HOURS_THICK 5
 #define MIN_THICK 4
 #define SEC_THICK 2
+  
+#define COLORS true
 
 typedef struct {
   int hours;
@@ -14,33 +16,75 @@ typedef struct {
 } Time;
 
 Window *my_window;
-TextLayer *text_layer;
+TextLayer *battery_text_layer;
 InverterLayer *inv_layer;
 TextLayer *hour_text_layer, *min_text_layer, *sec_text_layer;
 Layer *canvas_layer;
 Layer *right_hours_layer, *left_hours_layer;
 Layer *right_min, *left_min;
+BitmapLayer *battery_img_layer;
+BitmapLayer *bluetooth_img_layer;
 Time current_time;
 GPoint w_center, canvas_center;
 
 /************************************ UI **************************************/
-static void battery_handler(BatteryChargeState charge_state){
-  static char battery_text[25];
-
-  if (charge_state.is_charging) {
-    snprintf(battery_text, sizeof(battery_text), "%d%% charging", charge_state.charge_percent);
-  } else {
-    snprintf(battery_text, sizeof(battery_text), "%d%%", charge_state.charge_percent);
+static void bluetooth_handler(bool connected){
+  GBitmap *bt_img;
+  
+  if (connected) {
+    bt_img = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BT_ON);
+  }
+  else {
+    bt_img = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BT_OFF);
   }
   
+   bitmap_layer_set_bitmap(bluetooth_img_layer, bt_img);
+}
+
+static void battery_handler(BatteryChargeState charge_state){
+  static char battery_text[25];
+  GBitmap *battery_img;
+
   GColor color;
-  if ( charge_state.charge_percent > 50 ) color = GColorDarkGreen;
-  else
-    if ( charge_state.charge_percent >= 20 ) color = GColorOrange;
-    else color = GColorRed;
+
+  snprintf(battery_text, sizeof(battery_text), "%d%%", charge_state.charge_percent);
   
-  text_layer_set_text_color(text_layer, color);
-  text_layer_set_text(text_layer, battery_text);
+  if (charge_state.is_charging) {
+    color = GColorDarkGreen;
+    
+    //add battery img
+    battery_img = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BATTERY_CHARGING);
+  } 
+  else {
+    if ( charge_state.charge_percent > 50 ) {
+      color = GColorDarkGreen;
+      if ( charge_state.charge_percent > 75 ) {
+        //add battery img
+        battery_img = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BATTERY_FULL);
+      }
+      else {
+        //add battery img
+        battery_img = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BATTERY_75);
+      }
+    }
+    else {
+      if ( charge_state.charge_percent >= 25 ) {
+        color = GColorOrange; 
+        //add battery img
+        battery_img = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BATTERY_50);
+      }
+      else {
+        color = GColorRed;
+      
+        //add battery img
+        battery_img = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BATTERY_25);  
+      }
+    }
+  }
+  
+  text_layer_set_text_color(battery_text_layer, color);
+  text_layer_set_text(battery_text_layer, battery_text);
+  bitmap_layer_set_bitmap(battery_img_layer, battery_img);
 }
 
 //second tick handler
@@ -79,7 +123,7 @@ void draw_hour_layers(int hours, Layer *canvas, GContext *ctx){
   graphics_context_set_fill_color(ctx, GColorWhite);
   
   // normalize hours between 0-12
-  norm_hours = (hours > 12)? hours - 12 : hours;
+  norm_hours = (hours >= 12)? hours - 12 : hours;
   
   //calculate the size of the circle piece 
   inc_step = max_height / 6;
@@ -225,6 +269,12 @@ void deinit_canvas_layers(){
   layer_destroy(left_hours_layer);
 }
 
+void deinit_time_text_layers(){
+  text_layer_destroy(hour_text_layer);
+  text_layer_destroy(min_text_layer);
+  text_layer_destroy(sec_text_layer);
+}
+
 
 void window_load(){
   Layer * win_layer = window_get_root_layer(my_window);
@@ -238,12 +288,23 @@ void window_load(){
   layer_set_update_proc(canvas_layer, my_update_proc);
   canvas_center = GPoint( win_bounds.size.w/2, (10+win_bounds.size.h)/2);
   
-  //add text layer
-  text_layer = text_layer_create(GRect(0, 0, win_bounds.size.w, 20));
-  text_layer_set_text_alignment(text_layer, GTextAlignmentRight);
-  layer_add_child(win_layer, (Layer *) text_layer);
-  text_layer_set_font(hour_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD));
+  //add battery text layer
+  battery_text_layer = text_layer_create(GRect(win_bounds.size.w-30, 0, 30, 20));
+  text_layer_set_text_alignment(battery_text_layer, GTextAlignmentRight);
+  layer_add_child(win_layer, (Layer *) battery_text_layer);
+  text_layer_set_font(battery_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_14));
+  
+  //add battery img
+  battery_img_layer = bitmap_layer_create(GRect(win_bounds.size.w-50,0,20,20));
+  layer_add_child(win_layer, (Layer *) battery_img_layer);
+  
   battery_handler(battery_state_service_peek());
+  
+  //add bluetooth img
+  bluetooth_img_layer = bitmap_layer_create(GRect(0,0,20,20));
+  layer_add_child(win_layer, (Layer *) bluetooth_img_layer);
+  
+  bluetooth_handler(bluetooth_connection_service_peek());
   
   //inv_layer = inverter_layer_create(GRect(0, 0, win_bounds.size.w, 20));
   //layer_add_child(win_layer, (Layer *) inv_layer);
@@ -258,7 +319,7 @@ void window_load(){
   layer_add_child(win_layer, text_layer_get_layer(hour_text_layer));
 
   //add min text layer
-  min_text_layer = text_layer_create(GRect(canvas_center.x-10, canvas_center.y-(MIN_RADIUS+MIN_THICK+5), 20, 20));
+  min_text_layer = text_layer_create(GRect(canvas_center.x-10, canvas_center.y-(MIN_RADIUS+MIN_THICK+2), 20, 20));
   text_layer_set_text(min_text_layer, "M");
   text_layer_set_text_alignment(min_text_layer, GTextAlignmentCenter);
   text_layer_set_font(min_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
@@ -275,9 +336,10 @@ void window_load(){
 }
 
 void window_unload(){
-  text_layer_destroy(text_layer);
+  text_layer_destroy(battery_text_layer);
+  bitmap_layer_destroy(battery_img_layer);
   layer_destroy(canvas_layer);
-  //deinit_hour_layers();
+  deinit_time_text_layers();
 }
 
 /*********************************** App **************************************/
@@ -298,11 +360,14 @@ void handle_init(void) {
   
   tick_timer_service_subscribe(SECOND_UNIT, tick_handler);
   battery_state_service_subscribe(battery_handler);
+  bluetooth_connection_service_subscribe(bluetooth_handler);
 }
 
 void handle_deinit(void) {
   window_destroy(my_window);
   tick_timer_service_unsubscribe();
+  battery_state_service_unsubscribe();
+  bluetooth_connection_service_unsubscribe();
 }
 
 int main(void) {

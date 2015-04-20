@@ -7,7 +7,43 @@
     "longName": "graphics_test",
     "projectType": "native",
     "resources": {
-        "media": []
+        "media": [
+            {
+                "file": "images/BT_OFF_bw_sm.png",
+                "name": "IMAGE_BT_OFF",
+                "type": "png"
+            },
+            {
+                "file": "images/BT_ON_bw_sm.png",
+                "name": "IMAGE_BT_ON",
+                "type": "png"
+            },
+            {
+                "file": "images/charging_bw.png",
+                "name": "IMAGE_BATTERY_CHARGING",
+                "type": "png"
+            },
+            {
+                "file": "images/bat_25_color.png",
+                "name": "IMAGE_BATTERY_25",
+                "type": "png"
+            },
+            {
+                "file": "images/bat_50_color.png",
+                "name": "IMAGE_BATTERY_50",
+                "type": "png"
+            },
+            {
+                "file": "images/bat_75_color.png",
+                "name": "IMAGE_BATTERY_75",
+                "type": "png"
+            },
+            {
+                "file": "images/battery_full_conv.png",
+                "name": "IMAGE_BATTERY_FULL",
+                "type": "png"
+            }
+        ]
     },
     "sdkVersion": "3",
     "shortName": "graphics_test",
