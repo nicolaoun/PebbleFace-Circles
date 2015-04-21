@@ -1,11 +1,16 @@
 #include <pebble.h>
+#include <math.h>
   
-#define HOURS_RADIUS 23 //56
-#define MIN_RADIUS 41 //34
-#define SEC_RADIUS 63 //20
+#define SEC_RADIUS 65 //20
 #define HOURS_THICK 5
 #define MIN_THICK 4
 #define SEC_THICK 2
+#define MIN_RADIUS (int) ((SEC_RADIUS - SEC_THICK) / sqrt(2)) - MIN_THICK //41 //34
+#define HOURS_RADIUS (int) ((MIN_RADIUS - MIN_THICK) / sqrt(2)) - HOURS_THICK //23 //56
+#define HOURS_COLOR GColorRed
+#define MIN_COLOR GColorMayGreen
+#define SEC_COLOR GColorPurple
+#define BACKGROUND_COLOR GColorPastelYellow
   
 #define COLORS true
 
@@ -103,14 +108,16 @@ static void tick_handler(struct tm *tick_time, TimeUnits changed) {
 void draw_hour_layers(int hours, Layer *canvas, GContext *ctx){
   int norm_hours=0;
   float inc_step;
-  float top_y = canvas_center.y - HOURS_RADIUS - HOURS_THICK;
   float max_height = 2 * ( HOURS_RADIUS + HOURS_THICK );
   float half_circle = HOURS_RADIUS + HOURS_THICK;
+  float top_y = canvas_center.y - half_circle;
+  GColor color;
   
   //draw the circle
   //set parameters
   graphics_context_set_antialiased(ctx, true);
-  graphics_context_set_stroke_color(ctx, GColorRed);
+  color = (COLORS)? HOURS_COLOR : GColorBlack;
+  graphics_context_set_stroke_color(ctx, color);
   graphics_context_set_stroke_width(ctx, HOURS_THICK);
   
   graphics_draw_circle(ctx, canvas_center, HOURS_RADIUS);
@@ -118,9 +125,10 @@ void draw_hour_layers(int hours, Layer *canvas, GContext *ctx){
   //draw covering rectangles
   //set parameters
   graphics_context_set_antialiased(ctx, true);
-  graphics_context_set_stroke_color(ctx, GColorWhite);
+  color = (COLORS)? BACKGROUND_COLOR : GColorWhite;
+  graphics_context_set_stroke_color(ctx, color);
   graphics_context_set_stroke_width(ctx, 0);
-  graphics_context_set_fill_color(ctx, GColorWhite);
+  graphics_context_set_fill_color(ctx, color);
   
   // normalize hours between 0-12
   norm_hours = (hours >= 12)? hours - 12 : hours;
@@ -145,14 +153,19 @@ void draw_hour_layers(int hours, Layer *canvas, GContext *ctx){
 
 void draw_min_layers(int min, Layer *canvas, GContext *ctx){
   float inc_step;
-  float top_y = canvas_center.y - MIN_RADIUS ;
-  float max_height = 2 * ( MIN_RADIUS + MIN_THICK/2 );
+  //float top_y = canvas_center.y - MIN_RADIUS;
+  float max_height = 2 * ( MIN_RADIUS + MIN_THICK );
   float half_circle = MIN_RADIUS + MIN_THICK;
+  float top_y = canvas_center.y - half_circle;
+  GColor color;
+  
+ // APP_LOG(APP_LOG_LEVEL_DEBUG, "Min: C_y = %d, M_R= %d, Top_y = %d, Max_Height = %d, Half_Circle = %d \n", (int) canvas_center.y, (int) MIN_RADIUS, (int) top_y, (int) max_height, (int) half_circle);
   
   //draw the circle
   //set parameters
   graphics_context_set_antialiased(ctx, true);
-  graphics_context_set_stroke_color(ctx, GColorBlue);
+  color = (COLORS)? MIN_COLOR : GColorBlack;
+  graphics_context_set_stroke_color(ctx, color);
   graphics_context_set_stroke_width(ctx, MIN_THICK);
   
   graphics_draw_circle(ctx, canvas_center, MIN_RADIUS);
@@ -160,9 +173,10 @@ void draw_min_layers(int min, Layer *canvas, GContext *ctx){
   //draw covering rectangles
   //set parameters
   graphics_context_set_antialiased(ctx, true);
-  graphics_context_set_stroke_color(ctx, GColorWhite);
+  color = (COLORS)? BACKGROUND_COLOR : GColorWhite;
+  graphics_context_set_stroke_color(ctx, color);
   graphics_context_set_stroke_width(ctx, 0);
-  graphics_context_set_fill_color(ctx, GColorWhite);
+  graphics_context_set_fill_color(ctx, color);
   
   //calculate the size of the circle piece 
   inc_step = max_height / 30;
@@ -184,14 +198,16 @@ void draw_min_layers(int min, Layer *canvas, GContext *ctx){
 
 void draw_sec_layers(int sec, Layer *canvas, GContext *ctx){
   float inc_step;
-  float top_y = canvas_center.y - SEC_RADIUS - SEC_THICK/2;
   float max_height = 2 * ( SEC_RADIUS + SEC_THICK );
   float half_circle = SEC_RADIUS + SEC_THICK;
+  float top_y = canvas_center.y - half_circle;
+  GColor color;
   
   //draw the circle
   //set parameters
   graphics_context_set_antialiased(ctx, true);
-  graphics_context_set_stroke_color(ctx, GColorPurple);
+  color = (COLORS)? SEC_COLOR : GColorBlack;
+  graphics_context_set_stroke_color(ctx, color);
   graphics_context_set_stroke_width(ctx, SEC_THICK);
   
   graphics_draw_circle(ctx, canvas_center, SEC_RADIUS);
@@ -199,9 +215,10 @@ void draw_sec_layers(int sec, Layer *canvas, GContext *ctx){
   //draw covering rectangles
   //set parameters
   graphics_context_set_antialiased(ctx, true);
-  graphics_context_set_stroke_color(ctx, GColorWhite);
+  color = (COLORS)? BACKGROUND_COLOR : GColorWhite;
+  graphics_context_set_stroke_color(ctx, color);
   graphics_context_set_stroke_width(ctx, 0);
-  graphics_context_set_fill_color(ctx, GColorWhite);
+  graphics_context_set_fill_color(ctx, color);
   
   //calculate the size of the circle piece 
   inc_step = max_height / 30;
@@ -252,15 +269,12 @@ void my_update_proc(Layer *layer, GContext *ctx) {
 
   //Write the current time on the time layers
   (current_time.hours < 10) ? snprintf(hour, sizeof(hour), "0%d", current_time.hours) : snprintf(hour, sizeof(hour), "%d", current_time.hours);
-  text_layer_set_text_color(hour_text_layer, GColorRed);
   text_layer_set_text(hour_text_layer, hour);  
 
   (current_time.minutes < 10) ? snprintf(min, sizeof(min), "0%d", current_time.minutes) : snprintf(min, sizeof(min), "%d", current_time.minutes);
-  text_layer_set_text_color(min_text_layer, GColorBlue);
   text_layer_set_text(min_text_layer, min);
 
   (current_time.seconds < 10) ? snprintf(sec, sizeof(sec), "0%d", current_time.seconds) : snprintf(sec, sizeof(sec), "%d", current_time.seconds);;
-  text_layer_set_text_color(sec_text_layer, GColorPurple);
   text_layer_set_text(sec_text_layer, sec);
 }
 
@@ -279,6 +293,11 @@ void deinit_time_text_layers(){
 void window_load(){
   Layer * win_layer = window_get_root_layer(my_window);
   GRect win_bounds = layer_get_bounds(win_layer);
+  GColor color;
+  GColor bg_color;
+  
+  bg_color = (COLORS)? BACKGROUND_COLOR : GColorWhite;
+  window_set_background_color(my_window, bg_color);
   
   w_center = GPoint(win_bounds.size.w/2, win_bounds.size.h/2);
     
@@ -291,8 +310,9 @@ void window_load(){
   //add battery text layer
   battery_text_layer = text_layer_create(GRect(win_bounds.size.w-30, 0, 30, 20));
   text_layer_set_text_alignment(battery_text_layer, GTextAlignmentRight);
-  layer_add_child(win_layer, (Layer *) battery_text_layer);
+  text_layer_set_background_color(battery_text_layer, bg_color);
   text_layer_set_font(battery_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_14));
+  layer_add_child(win_layer, (Layer *) battery_text_layer);
   
   //add battery img
   battery_img_layer = bitmap_layer_create(GRect(win_bounds.size.w-50,0,20,20));
@@ -306,30 +326,34 @@ void window_load(){
   
   bluetooth_handler(bluetooth_connection_service_peek());
   
-  //inv_layer = inverter_layer_create(GRect(0, 0, win_bounds.size.w, 20));
-  //layer_add_child(win_layer, (Layer *) inv_layer);
-  
-
   //add hour text layer
-  //hour_text_layer = text_layer_create(GRect(canvas_center.x-10, canvas_center.y-(HOURS_RADIUS+HOURS_THICK+8), 20,25));
-  hour_text_layer = text_layer_create(GRect(canvas_center.x-10, canvas_center.y-12, 20,25));
+  hour_text_layer = text_layer_create(GRect(canvas_center.x-10, canvas_center.y-15, 20,25));
   text_layer_set_text(hour_text_layer, "H");
   text_layer_set_text_alignment(hour_text_layer, GTextAlignmentCenter);
   text_layer_set_font(hour_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
-  layer_add_child(win_layer, text_layer_get_layer(hour_text_layer));
+  color = (COLORS)? HOURS_COLOR : GColorBlack;
+  text_layer_set_text_color(hour_text_layer, color);
+  text_layer_set_background_color(hour_text_layer, bg_color);
+  layer_add_child(canvas_layer, text_layer_get_layer(hour_text_layer));
 
   //add min text layer
-  min_text_layer = text_layer_create(GRect(canvas_center.x-10, canvas_center.y-(MIN_RADIUS+MIN_THICK+2), 20, 20));
+  min_text_layer = text_layer_create(GRect(canvas_center.x-10, canvas_center.y-(MIN_RADIUS+MIN_THICK+5), 20, 20));
   text_layer_set_text(min_text_layer, "M");
   text_layer_set_text_alignment(min_text_layer, GTextAlignmentCenter);
   text_layer_set_font(min_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
-  layer_add_child(win_layer, text_layer_get_layer(min_text_layer));
+  color = (COLORS)? MIN_COLOR : GColorBlack;
+  text_layer_set_text_color(min_text_layer, color);
+  text_layer_set_background_color(min_text_layer, bg_color);
+  layer_add_child(canvas_layer, text_layer_get_layer(min_text_layer));
 
     //add sec text layer
   sec_text_layer = text_layer_create(GRect(canvas_center.x-10, canvas_center.y-(SEC_RADIUS+SEC_THICK+5), 20, 15));
   text_layer_set_text(sec_text_layer, "S");
   text_layer_set_text_alignment(sec_text_layer, GTextAlignmentCenter);
   text_layer_set_font(sec_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_14));
+  color = (COLORS)? SEC_COLOR : GColorBlack;
+  text_layer_set_text_color(sec_text_layer, color);
+  text_layer_set_background_color(sec_text_layer, bg_color);
   layer_add_child(canvas_layer, text_layer_get_layer(sec_text_layer));
   
 
@@ -371,6 +395,7 @@ void handle_deinit(void) {
 }
 
 int main(void) {
+  //APP_LOG(APP_LOG_LEVEL_DEBUG, "Sec_R = %d, Min_R = %d, Hour_R = %d", SEC_RADIUS, MIN_RADIUS, HOURS_RADIUS);
   handle_init();
   app_event_loop();
   handle_deinit();
