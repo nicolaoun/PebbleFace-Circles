@@ -1,18 +1,14 @@
 #include <pebble.h>
 #include <math.h>
+#include "theme.h"
   
-#define SEC_RADIUS 65 //20
-#define HOURS_THICK 5
-#define MIN_THICK 4
-#define SEC_THICK 2
+#define SEC_RADIUS MAX_RADIUS //20
+// compute minute radius so that embedding square does not overlap with sec circle
 #define MIN_RADIUS (int) ((SEC_RADIUS - SEC_THICK) / sqrt(2)) - MIN_THICK //41 //34
+// compute hours radius so that embedding square does not overlap with min circle
 #define HOURS_RADIUS (int) ((MIN_RADIUS - MIN_THICK) / sqrt(2)) - HOURS_THICK //23 //56
-#define HOURS_COLOR GColorRed
-#define MIN_COLOR GColorMayGreen
-#define SEC_COLOR GColorPurple
-#define BACKGROUND_COLOR GColorPastelYellow
   
-#define COLORS false
+#define COLORS true
 
 typedef struct {
   int hours;
@@ -355,7 +351,7 @@ void window_load(){
   layer_add_child(canvas_layer, text_layer_get_layer(hour_text_layer));
 
   //add min text layer
-  min_text_layer = text_layer_create(GRect(canvas_center.x-10, canvas_center.y-(MIN_RADIUS+MIN_THICK+5), 20, 20));
+  min_text_layer = text_layer_create(GRect(canvas_center.x-10, canvas_center.y-(MIN_RADIUS+MIN_THICK/2+10), 20, 20));
   text_layer_set_text(min_text_layer, "M");
   text_layer_set_text_alignment(min_text_layer, GTextAlignmentCenter);
   text_layer_set_font(min_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));

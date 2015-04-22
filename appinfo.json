@@ -9,6 +9,11 @@
     "resources": {
         "media": [
             {
+                "file": "images/bat_empty_bw_sm.png",
+                "name": "IMAGE_BATTERY_EMPTY",
+                "type": "png"
+            },
+            {
                 "file": "images/BT_OFF_bw_sm.png",
                 "name": "IMAGE_BT_OFF",
                 "type": "png"
