@@ -78,8 +78,12 @@ static void battery_handler(BatteryChargeState charge_state){
       else {
         color = (COLORS) ? GColorRed : GColorBlack;
       
-        //add battery img
-        battery_img = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BATTERY_25);  
+        if (charge_state.charge_percent > 0)
+          //add battery img
+          battery_img = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BATTERY_25);
+        else
+          //add battery img
+          battery_img = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BATTERY_EMPTY);
       }
     }
   }

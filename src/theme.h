@@ -29,8 +29,9 @@
 #define BACKGROUND_COLOR GColorMayGreen
 */
 // Apoel Theme
-
+/*
 #define HOURS_COLOR GColorBlue
 #define MIN_COLOR GColorBlue
 #define SEC_COLOR GColorBlue
 #define BACKGROUND_COLOR GColorPastelYellow
+*/
