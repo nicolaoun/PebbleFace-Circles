@@ -12,18 +12,19 @@
 #define SEC_COLOR GColorPurple
 #define BACKGROUND_COLOR GColorPastelYellow
   
-#define COLORS true
+#define COLORS false
 
 typedef struct {
   int hours;
   int minutes;
   int seconds;
+  char date[25];
 } Time;
 
 Window *my_window;
 TextLayer *battery_text_layer;
 InverterLayer *inv_layer;
-TextLayer *hour_text_layer, *min_text_layer, *sec_text_layer;
+TextLayer *hour_text_layer, *min_text_layer, *sec_text_layer, *date_text_layer;
 Layer *canvas_layer;
 Layer *right_hours_layer, *left_hours_layer;
 Layer *right_min, *left_min;
@@ -55,14 +56,14 @@ static void battery_handler(BatteryChargeState charge_state){
   snprintf(battery_text, sizeof(battery_text), "%d%%", charge_state.charge_percent);
   
   if (charge_state.is_charging) {
-    color = GColorDarkGreen;
+    color = (COLORS)? GColorDarkGreen : GColorBlack;
     
     //add battery img
     battery_img = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BATTERY_CHARGING);
   } 
   else {
     if ( charge_state.charge_percent > 50 ) {
-      color = GColorDarkGreen;
+      color = (COLORS) ? GColorDarkGreen : GColorBlack;
       if ( charge_state.charge_percent > 75 ) {
         //add battery img
         battery_img = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BATTERY_FULL);
@@ -74,12 +75,12 @@ static void battery_handler(BatteryChargeState charge_state){
     }
     else {
       if ( charge_state.charge_percent >= 25 ) {
-        color = GColorOrange; 
+        color = (COLORS) ? GColorOrange : GColorBlack; 
         //add battery img
         battery_img = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BATTERY_50);
       }
       else {
-        color = GColorRed;
+        color = (COLORS) ? GColorRed : GColorBlack;
       
         //add battery img
         battery_img = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BATTERY_25);  
@@ -98,6 +99,7 @@ static void tick_handler(struct tm *tick_time, TimeUnits changed) {
   current_time.hours = tick_time->tm_hour;
   current_time.minutes = tick_time->tm_min;
   current_time.seconds = tick_time->tm_sec;
+  strftime(current_time.date, sizeof(current_time.date), "%B %d", tick_time);
 
   // Redraw
   if(canvas_layer) {
@@ -255,6 +257,13 @@ void my_update_proc(Layer *layer, GContext *ctx) {
   // draw hour circle
   draw_hour_layers(current_time.hours, layer, ctx);
   
+  // write the date
+  GRect date_bounds = layer_get_bounds((Layer *) date_text_layer);
+  text_layer_set_text(date_text_layer, current_time.date);
+  graphics_context_set_stroke_color(ctx, GColorBlack);
+  graphics_context_set_stroke_width(ctx, 1);
+  graphics_draw_line(ctx, GPoint(0, 20), GPoint(date_bounds.size.w, 20));
+
   //draw indication lines
   graphics_context_set_stroke_color(ctx, GColorBlack);
   graphics_context_set_stroke_width(ctx, 1);
@@ -321,10 +330,19 @@ void window_load(){
   battery_handler(battery_state_service_peek());
   
   //add bluetooth img
-  bluetooth_img_layer = bitmap_layer_create(GRect(0,0,20,20));
+  bluetooth_img_layer = bitmap_layer_create(GRect(win_bounds.size.w-70,0,20,20));
   layer_add_child(win_layer, (Layer *) bluetooth_img_layer);
   
   bluetooth_handler(bluetooth_connection_service_peek());
+  
+  //add date text layer
+  date_text_layer = text_layer_create(GRect(0, 0, win_bounds.size.w-70, 20));
+  text_layer_set_text_alignment(date_text_layer, GTextAlignmentLeft);
+  text_layer_set_font(date_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+  color = (COLORS)? HOURS_COLOR : GColorBlack;
+  text_layer_set_text_color(date_text_layer, color);
+  text_layer_set_background_color(date_text_layer, bg_color);
+  layer_add_child(win_layer, text_layer_get_layer(date_text_layer));
   
   //add hour text layer
   hour_text_layer = text_layer_create(GRect(canvas_center.x-10, canvas_center.y-15, 20,25));
