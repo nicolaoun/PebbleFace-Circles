@@ -7,7 +7,7 @@
 #define MIN_RADIUS (int) ((SEC_RADIUS - SEC_THICK) / sqrt(2)) - MIN_THICK //41 //34
 // compute hours radius so that embedding square does not overlap with min circle
 #define HOURS_RADIUS (int) ((MIN_RADIUS - MIN_THICK) / sqrt(2)) - HOURS_THICK //23 //56
-  
+
 #define COLORS true
 
 typedef struct {
@@ -52,14 +52,14 @@ static void battery_handler(BatteryChargeState charge_state){
   snprintf(battery_text, sizeof(battery_text), "%d%%", charge_state.charge_percent);
   
   if (charge_state.is_charging) {
-    color = (COLORS)? GColorDarkGreen : GColorBlack;
+    color = BATTERY_FULL_COLOR;
     
     //add battery img
     battery_img = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BATTERY_CHARGING);
   } 
   else {
     if ( charge_state.charge_percent > 50 ) {
-      color = (COLORS) ? GColorDarkGreen : GColorBlack;
+      color = BATTERY_FULL_COLOR;
       if ( charge_state.charge_percent > 75 ) {
         //add battery img
         battery_img = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BATTERY_FULL);
@@ -71,12 +71,12 @@ static void battery_handler(BatteryChargeState charge_state){
     }
     else {
       if ( charge_state.charge_percent >= 25 ) {
-        color = (COLORS) ? GColorOrange : GColorBlack; 
+        color = BATTERY_WARN_COLOR;
         //add battery img
         battery_img = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BATTERY_50);
       }
       else {
-        color = (COLORS) ? GColorRed : GColorBlack;
+        color = BATTERY_EMPTY_COLOR;
       
         if (charge_state.charge_percent > 0)
           //add battery img
@@ -107,30 +107,41 @@ static void tick_handler(struct tm *tick_time, TimeUnits changed) {
   }
 }
 
+
+void draw_clock_circle(GContext *ctx, GPoint center, float radius, float thickness, GColor color) {
+  //set parameters
+  //combatibility with Aplite
+  #ifdef PBL_PLATFORM_BASALT
+  graphics_context_set_antialiased(ctx, true);
+  //graphics_context_set_stroke_width(ctx, HOURS_THICK);
+  graphics_context_set_stroke_width(ctx, thickness);
+  #endif
+  graphics_context_set_stroke_color(ctx, color);
+  
+  
+  graphics_draw_circle(ctx, center, radius);
+}
+
 void draw_hour_layers(int hours, Layer *canvas, GContext *ctx){
   int norm_hours=0;
   float inc_step;
   float max_height = 2 * ( HOURS_RADIUS + HOURS_THICK );
   float half_circle = HOURS_RADIUS + HOURS_THICK;
   float top_y = canvas_center.y - half_circle;
-  GColor color;
+  //GColor color;
   
   //draw the circle
-  //set parameters
-  graphics_context_set_antialiased(ctx, true);
-  color = (COLORS)? HOURS_COLOR : GColorBlack;
-  graphics_context_set_stroke_color(ctx, color);
-  graphics_context_set_stroke_width(ctx, HOURS_THICK);
-  
-  graphics_draw_circle(ctx, canvas_center, HOURS_RADIUS);
+  draw_clock_circle(ctx, canvas_center, HOURS_RADIUS, HOURS_THICK, HOURS_COLOR);
   
   //draw covering rectangles
   //set parameters
-  graphics_context_set_antialiased(ctx, true);
-  color = (COLORS)? BACKGROUND_COLOR : GColorWhite;
-  graphics_context_set_stroke_color(ctx, color);
+  //graphics_context_set_antialiased(ctx, true);
+  //color = (COLORS)? BACKGROUND_COLOR : GColorWhite;
+  #ifdef PBL_PLATFORM_BASALT
   graphics_context_set_stroke_width(ctx, 0);
-  graphics_context_set_fill_color(ctx, color);
+  #endif
+  graphics_context_set_stroke_color(ctx, BACKGROUND_COLOR);
+  graphics_context_set_fill_color(ctx, BACKGROUND_COLOR);
   
   // normalize hours between 0-12
   norm_hours = (hours >= 12)? hours - 12 : hours;
@@ -159,26 +170,22 @@ void draw_min_layers(int min, Layer *canvas, GContext *ctx){
   float max_height = 2 * ( MIN_RADIUS + MIN_THICK );
   float half_circle = MIN_RADIUS + MIN_THICK;
   float top_y = canvas_center.y - half_circle;
-  GColor color;
+  //GColor color;
   
  // APP_LOG(APP_LOG_LEVEL_DEBUG, "Min: C_y = %d, M_R= %d, Top_y = %d, Max_Height = %d, Half_Circle = %d \n", (int) canvas_center.y, (int) MIN_RADIUS, (int) top_y, (int) max_height, (int) half_circle);
   
   //draw the circle
-  //set parameters
-  graphics_context_set_antialiased(ctx, true);
-  color = (COLORS)? MIN_COLOR : GColorBlack;
-  graphics_context_set_stroke_color(ctx, color);
-  graphics_context_set_stroke_width(ctx, MIN_THICK);
-  
-  graphics_draw_circle(ctx, canvas_center, MIN_RADIUS);
+  draw_clock_circle(ctx, canvas_center, MIN_RADIUS, MIN_THICK, MIN_COLOR);
   
   //draw covering rectangles
   //set parameters
-  graphics_context_set_antialiased(ctx, true);
-  color = (COLORS)? BACKGROUND_COLOR : GColorWhite;
-  graphics_context_set_stroke_color(ctx, color);
+  //graphics_context_set_antialiased(ctx, true);
+  //color = (COLORS)? BACKGROUND_COLOR : GColorWhite;
+  graphics_context_set_stroke_color(ctx, BACKGROUND_COLOR);
+  #ifdef PBL_PLATFORM_BASALT
   graphics_context_set_stroke_width(ctx, 0);
-  graphics_context_set_fill_color(ctx, color);
+  #endif
+  graphics_context_set_fill_color(ctx, BACKGROUND_COLOR);
   
   //calculate the size of the circle piece 
   inc_step = max_height / 30;
@@ -206,21 +213,17 @@ void draw_sec_layers(int sec, Layer *canvas, GContext *ctx){
   GColor color;
   
   //draw the circle
-  //set parameters
-  graphics_context_set_antialiased(ctx, true);
-  color = (COLORS)? SEC_COLOR : GColorBlack;
-  graphics_context_set_stroke_color(ctx, color);
-  graphics_context_set_stroke_width(ctx, SEC_THICK);
-  
-  graphics_draw_circle(ctx, canvas_center, SEC_RADIUS);
+  draw_clock_circle(ctx, canvas_center, SEC_RADIUS, SEC_THICK, SEC_COLOR);
   
   //draw covering rectangles
   //set parameters
-  graphics_context_set_antialiased(ctx, true);
-  color = (COLORS)? BACKGROUND_COLOR : GColorWhite;
-  graphics_context_set_stroke_color(ctx, color);
+  //graphics_context_set_antialiased(ctx, true);
+  //color = (COLORS)? BACKGROUND_COLOR : GColorWhite;
+  graphics_context_set_stroke_color(ctx, BACKGROUND_COLOR);
+  #ifdef PBL_PLATFORM_BASALT
   graphics_context_set_stroke_width(ctx, 0);
-  graphics_context_set_fill_color(ctx, color);
+  #endif
+  graphics_context_set_fill_color(ctx, BACKGROUND_COLOR);
   
   //calculate the size of the circle piece 
   inc_step = max_height / 30;
@@ -260,13 +263,17 @@ void my_update_proc(Layer *layer, GContext *ctx) {
   // write the date
   GRect date_bounds = layer_get_bounds((Layer *) date_text_layer);
   text_layer_set_text(date_text_layer, current_time.date);
-  graphics_context_set_stroke_color(ctx, GColorBlack);
+  graphics_context_set_stroke_color(ctx, SEC_COLOR);
+  #ifdef PBL_PLATFORM_BASALT
   graphics_context_set_stroke_width(ctx, 1);
+  #endif
   graphics_draw_line(ctx, GPoint(0, 20), GPoint(date_bounds.size.w, 20));
 
   //draw indication lines
   graphics_context_set_stroke_color(ctx, GColorBlack);
+  #ifdef PBL_PLATFORM_BASALT
   graphics_context_set_stroke_width(ctx, 1);
+  #endif
   // 15 min
   graphics_draw_line(ctx, GPoint(canvas_center.x + 10, canvas_center.y), GPoint(canvas_center.x+HOURS_RADIUS+HOURS_THICK, canvas_center.y));
   // 30 min
@@ -338,9 +345,8 @@ void window_load(){
   //add date text layer
   date_text_layer = text_layer_create(GRect(0, 0, win_bounds.size.w-70, 20));
   text_layer_set_text_alignment(date_text_layer, GTextAlignmentLeft);
-  text_layer_set_font(date_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
-  color = (COLORS)? HOURS_COLOR : GColorBlack;
-  text_layer_set_text_color(date_text_layer, color);
+  text_layer_set_font(date_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_14));
+  text_layer_set_text_color(date_text_layer, SEC_COLOR);
   text_layer_set_background_color(date_text_layer, bg_color);
   layer_add_child(win_layer, text_layer_get_layer(date_text_layer));
   

@@ -1,7 +1,7 @@
 {
     "appKeys": {},
     "capabilities": [
-        ""
+        "configurable"
     ],
     "companyName": "nicolaoun@gmail.com",
     "longName": "graphics_test",
@@ -53,6 +53,7 @@
     "sdkVersion": "3",
     "shortName": "graphics_test",
     "targetPlatforms": [
+        "aplite",
         "basalt"
     ],
     "uuid": "667effcc-56b6-4dd7-b076-3fe1e4552f4e",
